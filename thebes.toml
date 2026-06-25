@@ -1,0 +1,20 @@
+[project]
+name = "thebes-example-iso20022"
+default_network = "wan"
+chain_id = 2026
+
+[networks.wan]
+validators = [
+    "http://72.62.235.133:18080",
+    "http://72.62.235.127:18080",
+    "http://72.62.235.134:18080",
+    "http://76.13.140.52:18080",
+]
+boundary = "https://memphis.mercaturaforum.com"
+routing = "smart"
+
+[canisters.iso20022]
+type = "backend-motoko"
+cid = 222063180174277
+wasm = "build/iso20022.wasm"
+build = 'cd motoko && mops install >/dev/null 2>&1 && mkdir -p ../build && MOC="$(ls "$HOME/.cache/mops/moc/1.4.1/moc" "$HOME/Library/Caches/mops/moc/1.4.1/moc" 2>/dev/null | head -1)" && "$MOC" $(mops sources) -o ../build/iso20022.wasm main.mo'

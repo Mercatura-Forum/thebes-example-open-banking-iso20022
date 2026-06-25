@@ -1,0 +1,12 @@
+thebes-example-iso20022
+Copyright 2026 Mercatura Forum contributors
+
+This project is licensed under the Apache License, Version 2.0.
+
+The Motoko backend uses the Thebes backend library (`thebes-lib`) and the
+Motoko `core` package. The design is informed by public ISO 20022 message
+catalogues and by Thebes example canister patterns.
+
+`motoko/InPlaceSha256d.mo` is vendored from the Menese LiteCoin-node
+allocation-free Merkle/SHA-256d contribution:
+https://github.com/Menese-Protocol/LiteCoin-node/pull/1

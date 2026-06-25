@@ -1,0 +1,208 @@
+{
+  "version": "thebes-iso20022-profile-map-v1",
+  "schemaDirectoryLayout": "schema files are expected under --schema-dir using the schemaFile values below",
+  "fixtures": [
+    {
+      "id": "valid/pain001-eg-domestic.xml",
+      "path": "integration-kit/xml/valid/pain001-eg-domestic.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "pain.001",
+      "schemaFile": "pain.001.001.09.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/pacs008-eg-domestic.xml",
+      "path": "integration-kit/xml/valid/pacs008-eg-domestic.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "pacs.008",
+      "schemaFile": "pacs.008.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/direct-debit-pain008-sdd.xml",
+      "path": "integration-kit/xml/valid/direct-debit-pain008-sdd.xml",
+      "profile": "SEPA-SDD-EDU",
+      "messageKind": "pain.008",
+      "schemaFile": "pain.008.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/direct-debit-pacs003-sdd.xml",
+      "path": "integration-kit/xml/valid/direct-debit-pacs003-sdd.xml",
+      "profile": "SEPA-SDD-EDU",
+      "messageKind": "pacs.003",
+      "schemaFile": "pacs.003.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/pacs009-cbprplus-core.xml",
+      "path": "integration-kit/xml/valid/pacs009-cbprplus-core.xml",
+      "profile": "CBPRPLUS-EDU",
+      "messageKind": "pacs.009",
+      "schemaFile": "pacs.009.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/status-pain002-accepted.xml",
+      "path": "integration-kit/xml/valid/status-pain002-accepted.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "pain.002",
+      "schemaFile": "pain.002.001.10.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/status-pacs002-settled.xml",
+      "path": "integration-kit/xml/valid/status-pacs002-settled.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "pacs.002",
+      "schemaFile": "pacs.002.001.10.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/status-pacs004-returned.xml",
+      "path": "integration-kit/xml/valid/status-pacs004-returned.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "pacs.004",
+      "schemaFile": "pacs.004.001.09.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/investigation-camt056-cancel.xml",
+      "path": "integration-kit/xml/valid/investigation-camt056-cancel.xml",
+      "profile": "CBPRPLUS-EDU",
+      "messageKind": "camt.056",
+      "schemaFile": "camt.056.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/investigation-camt029-resolution.xml",
+      "path": "integration-kit/xml/valid/investigation-camt029-resolution.xml",
+      "profile": "CBPRPLUS-EDU",
+      "messageKind": "camt.029",
+      "schemaFile": "camt.029.001.09.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/investigation-pacs028-status-request.xml",
+      "path": "integration-kit/xml/valid/investigation-pacs028-status-request.xml",
+      "profile": "CBPRPLUS-EDU",
+      "messageKind": "pacs.028",
+      "schemaFile": "pacs.028.001.03.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/investigation-camt110-request.xml",
+      "path": "integration-kit/xml/valid/investigation-camt110-request.xml",
+      "profile": "BIS-CPMI-HARMONIZED-CROSSBORDER",
+      "messageKind": "camt.110",
+      "schemaFile": "camt.110.001.01.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/investigation-camt111-response.xml",
+      "path": "integration-kit/xml/valid/investigation-camt111-response.xml",
+      "profile": "BIS-CPMI-HARMONIZED-CROSSBORDER",
+      "messageKind": "camt.111",
+      "schemaFile": "camt.111.001.01.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/request-pain013-rfp.xml",
+      "path": "integration-kit/xml/valid/request-pain013-rfp.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "pain.013",
+      "schemaFile": "pain.013.001.10.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/request-pain014-accepted.xml",
+      "path": "integration-kit/xml/valid/request-pain014-accepted.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "pain.014",
+      "schemaFile": "pain.014.001.10.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/request-camt055-cancel.xml",
+      "path": "integration-kit/xml/valid/request-camt055-cancel.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "camt.055",
+      "schemaFile": "camt.055.001.09.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/admin-admi002-reject.xml",
+      "path": "integration-kit/xml/valid/admin-admi002-reject.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "admi.002",
+      "schemaFile": "admi.002.001.01.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/admin-admi004-connection-check.xml",
+      "path": "integration-kit/xml/valid/admin-admi004-connection-check.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "admi.004",
+      "schemaFile": "admi.004.001.01.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/admin-admi007-ack.xml",
+      "path": "integration-kit/xml/valid/admin-admi007-ack.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "admi.007",
+      "schemaFile": "admi.007.001.01.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/admin-admi011-connection-ack.xml",
+      "path": "integration-kit/xml/valid/admin-admi011-connection-ack.xml",
+      "profile": "FEDWIRE-ISO20022-EDU",
+      "messageKind": "admi.011",
+      "schemaFile": "admi.011.001.01.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/camt053-statement.xml",
+      "path": "integration-kit/xml/valid/camt053-statement.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "camt.053",
+      "schemaFile": "camt.053.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/camt054-notification.xml",
+      "path": "integration-kit/xml/valid/camt054-notification.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "camt.054",
+      "schemaFile": "camt.054.001.08.xsd",
+      "expected": "valid"
+    },
+    {
+      "id": "valid/cover-payment.xml",
+      "path": "integration-kit/xml/valid/cover-payment.xml",
+      "profile": "CBPRPLUS-EDU",
+      "messageKind": "cover.payment",
+      "schemaFile": null,
+      "expected": "custom-profile-valid"
+    },
+    {
+      "id": "invalid/xml-doctype-entity.xml",
+      "path": "integration-kit/xml/invalid/xml-doctype-entity.xml",
+      "profile": "SECURITY",
+      "messageKind": "any",
+      "schemaFile": null,
+      "expected": "canister-rejects",
+      "expectedRuleIds": ["XML-UNSAFE-DECL"]
+    },
+    {
+      "id": "invalid/status-uetr-mismatch.xml",
+      "path": "integration-kit/xml/invalid/status-uetr-mismatch.xml",
+      "profile": "EG-DOMESTIC-EDU",
+      "messageKind": "pacs.002",
+      "schemaFile": "pacs.002.001.10.xsd",
+      "expected": "schema-valid-business-invalid",
+      "expectedRuleIds": ["STATUS-UETR-MISMATCH"]
+    }
+  ]
+}

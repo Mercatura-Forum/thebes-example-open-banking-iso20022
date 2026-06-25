@@ -1,0 +1,31 @@
+.DS_Store
+build/
+canister_ids.json
+integration-kit/profile-runner/official-schemas/
+motoko/.mops/
+node_modules/
+target/
+
+# --- Internal workspace material — kept on disk for our own work, never published ---
+# Session/handoff notes and test run logs
+SESSION_HANDOFF.md
+test-logs/
+
+# Internal engineering surfaces: plans of record, oracle/verification methodology,
+# checkpoint maps, and scheme research. These document HOW we build and verify;
+# they are not part of the public learning artifact.
+docs/MARKET_HUB_PLAN.md
+docs/MAYO2_MOTOKO_VERIFIER_PLAN.md
+docs/CHECKPOINT_MAP.md
+docs/COMPLIANCE_ORACLE.md
+docs/CONNECTOR_ORACLE.md
+docs/PHASE_ORACLES.md
+docs/XML_CODEC_ORACLE.md
+docs/PUBLIC_SCHEME_RESEARCH.md
+docs/REGION_BTREE_CHECKPOINT.md
+
+# Internal Rust oracle tooling (vector generation / cross-check); not example code
+tools/
+
+__pycache__/
+*.pyc
