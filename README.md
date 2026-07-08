@@ -127,6 +127,11 @@ thebes-deploy deploy iso20022
 python3 integration-kit/scripts/certified-disclosure-verify.py
 ```
 
+> **Deploying your own copy?** The committed `cid` pins the **live catalog
+> deployment** (only its controller can upgrade it). Before your first deploy,
+> set `cid = "auto"` in `thebes.toml`: the deploy allocates a fresh canister
+> you control and writes its id back into the manifest.
+
 That third step is the whole argument made tangible. The hub hands you a
 settlement disclosure; the script recomputes the audit snapshot hash, every
 participant-balance hash, the ordered Merkle root, and the final
@@ -238,6 +243,11 @@ mops test
 thebes-deploy identity new me
 thebes-deploy deploy iso20022
 ```
+
+> **Deploying your own copy?** The committed `cid` pins the **live catalog
+> deployment** (only its controller can upgrade it). Before your first deploy,
+> set `cid = "auto"` in `thebes.toml`: the deploy allocates a fresh canister
+> you control and writes its id back into the manifest.
 
 ---
 
