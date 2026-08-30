@@ -211,6 +211,32 @@ has not earned.
 
 ---
 
+## Identity
+
+`submitTransportEnvelopeWithMemphis` attributes a submission to a person rather
+than to a key, using [Memphis](https://github.com/Mercatura-Forum/thebes-sdk/blob/main/docs/memphis.md), contract **921**. Two strings decide this
+and they are **not** the same value:
+
+| | What it is | Changing it |
+| --- | --- | --- |
+| `origin` (on the gate) | The **pseudonym namespace**, here the label `thebes-example-iso20022`. It decides every submitter's principal. | Orphans every existing account. Frozen for the life of the contract. |
+| `memphisAudience` | The **web origin of the frontend** that submits here. Memphis compares it byte-exactly against the origin the token was minted for. | Safe. Set it with `setMemphisAudience` when the submitting frontend moves. |
+
+Institutions run their own frontend, which is why the audience is configurable
+while the namespace is not. Passing the namespace as the audience — which is
+what a single-argument `verify` does — makes **every** verification fail with
+`#Unauthorized`, because the namespace is a label and not a URL.
+
+```motoko
+switch (await* MemphisAuth.verifyWithAudience(memphisGate, token, memphisAudience)) { ... }
+```
+
+`await*`, not `await`. `verifyWithAudience` is `async*`, and a plain `await` on
+a module-level `async` helper that calls another contract replies with the
+*inner* value instead of this method's own return.
+
+Full guide, both halves: **[`docs/memphis.md`](https://github.com/Mercatura-Forum/thebes-sdk/blob/main/docs/memphis.md)**.
+
 ## Backend interface
 
 The full method surface is enumerated in `docs/ARCHITECTURE.md`. The groups that
