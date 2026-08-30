@@ -683,7 +683,17 @@ persistent actor ISO20022Hub {
   let connectorGuidelineProfiles = Map.empty<Text, ConnectorGuidelineProfile>();
   var complianceProfile : ComplianceProfile = ISO.defaultComplianceProfile();
   let complianceScreeningRecords = Map.empty<Nat, ComplianceScreeningRecord>();
+  // The PSEUDONYM NAMESPACE — a label, frozen for the life of this contract.
+  // It decides every institution user's principal; changing it orphans them.
   var memphisGate : MemphisAuth.State = MemphisAuth.initFromCid(921, "thebes-example-iso20022", 1);
+
+  // The WEB ORIGIN of the frontend that submits envelopes here. A DIFFERENT
+  // value from the namespace above: Memphis compares this byte-exactly against
+  // the origin it minted the token for, and the namespace is not a URL at all.
+  // Passing the namespace as the audience makes every verification fail with
+  // #Unauthorized, which is what this contract did before it was configurable.
+  // Institutions run their own frontend, so it is set with setMemphisAudience.
+  var memphisAudience : Text = "https://memphis.mercaturaforum.com";
 
   var nextPaymentId : Nat = 0;
   let payments = Map.empty<Nat, HubPayment>();
@@ -1093,6 +1103,21 @@ persistent actor ISO20022Hub {
     true;
   };
 
+  public query func getMemphisAudience() : async Text { memphisAudience };
+
+  /// Set the web origin whose sessions this contract accepts.
+  ///
+  /// Safe to change — unlike the namespace on the gate, it touches no identity:
+  /// it only says where a token must have been minted. Change it when the
+  /// submitting frontend moves to a new domain. It must be a bare origin
+  /// (scheme + host + optional port) because Memphis compares it byte-exactly.
+  public shared (msg) func setMemphisAudience(audience : Text) : async Bool {
+    Admin.requireAdmin(admin, msg.caller);
+    if (Text.size(audience) == 0) return false;
+    memphisAudience := audience;
+    true;
+  };
+
   // -- On-chain connector framework --------------------------------------
   public shared (msg) func registerConnector(
     id : Text,
@@ -1187,7 +1212,10 @@ persistent actor ISO20022Hub {
   public shared (msg) func submitTransportEnvelopeWithMemphis(env : TransportEnvelope, token : Blob) : async MemphisTransportSubmitResult {
     Admin.requireNotPaused(admin);
     if (Principal.isAnonymous(msg.caller)) Runtime.trap("anonymous caller");
-    let identity = switch (await MemphisAuth.verify(memphisGate, token)) {
+    // await*, not await: verifyWithAudience is async*. A plain await on a
+    // module-level async helper that calls another contract replies with the
+    // INNER value instead of this method's own return.
+    let identity = switch (await* MemphisAuth.verifyWithAudience(memphisGate, token, memphisAudience)) {
       case (#ok(id)) id;
       case (#err(e)) return #authErr(e);
     };
