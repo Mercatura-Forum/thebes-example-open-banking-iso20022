@@ -13,6 +13,7 @@ import Xml "ISO20022Xml";
 import Connector "Connector";
 import LegacyMT "LegacyMT";
 import Breadth "iso/IsoBreadth";
+import MtBridge "iso/MtBridge";
 import IsoProfiles "iso/IsoProfiles";
 import Oracles "PhaseOracle";
 import OrderedIndex "OrderedIndex";
@@ -1477,6 +1478,23 @@ persistent actor ISO20022Hub {
             status := "dead-letter";
           };
         };
+      } else if (mtBridgeFormat(env.format)) {
+        // the MT bridge: block 2 names the type ("mt" lets the bridge read it; "mt202" and the like assert it)
+        let hint = if (env.format == "mt") null else ?Text.toUpper(env.format);
+        let d = MtBridge.decode(env.payload, hint, mtOptions(selectedGuideline), breadthMinorUnits(selectedGuideline));
+        switch (d.message) {
+          case (#ok(m)) {
+            switch (hint) { case (?h) { if (h != d.mtType) { issues := Connector.add(issues, ISO.publicIssue("transport", "MT-TYPE-MISMATCH", "$.format", "block 2 says " # d.mtType # ", the format says " # h)) } }; case null {} };
+            if (issues.size() == 0) {
+              switch (m) {
+                case (#pain001(docs)) { paymentId := submitLegacyPaymentBatch(caller, docs, env.payload, selectedGuideline) };
+                case (_) {};
+              };
+              status := "processed";
+            } else status := "dead-letter";
+          };
+          case (#err(e)) { for (i in e.vals()) issues := Connector.add(issues, i); status := "dead-letter" };
+        };
       } else if (breadthFormat(env.format)) {
         // the schema-profile codec: the official XSD first, then the business reading
         let d = Breadth.decode(env.payload, breadthMinorUnits(selectedGuideline));
@@ -2094,6 +2112,60 @@ persistent actor ISO20022Hub {
     issues : [ValidationIssue];
   };
   public type SchemaProfileSummary = { family : Text; namespace : Text; rootName : Text; schemaSha256 : Text; types : Nat };
+
+  // -- the MT bridge (parity matrix row M4): twelve FIN message types ↔ the hub's records -------------
+  // motoko/iso/MtBridge.mo. The legacy routes above ("mt103", "mt940", "mt942") are unchanged; the
+  // bridge's route is "mt" (the type read from block 2) or the type itself ("mt202", "mt202cov", …).
+
+  public type MtMessage = MtBridge.Message;
+  public type MtMapping = MtBridge.Mapping;
+  public type MtDecode = { mtType : Text; iso : Text; message : ?MtMessage; issues : [ValidationIssue] };
+  public type MtParty = MtBridge.Party;
+
+  let MT_BRIDGE_FORMATS : [Text] = ["mt", "mt101", "mt104", "mt202", "mt202cov", "mt900", "mt910", "mt950", "mt192", "mt196", "mt199"];
+  func mtBridgeFormat(format : Text) : Bool { for (f in MT_BRIDGE_FORMATS.vals()) { if (f == format) return true }; false };
+
+  /// Days since 1970-01-01 to a civil date (Howard Hinnant's algorithm), for the records' creation date-time.
+  func isoDateTimeNow() : Text {
+    let ns = Time.now();
+    let secs = if (ns < 0) 0 else Int.abs(ns) / 1_000_000_000;
+    let days = secs / 86400;
+    let rem = secs % 86400;
+    let z = days + 719468;
+    let era = z / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if (mp < 10) mp + 3 else mp - 9;
+    let year = if (m <= 2) y + 1 else y;
+    func two(n : Nat) : Text { if (n < 10) "0" # Nat.toText(n) else Nat.toText(n) };
+    Nat.toText(year) # "-" # two(m) # "-" # two(d) # "T" # two(rem / 3600) # ":" # two((rem % 3600) / 60) # ":" # two(rem % 60) # "Z"
+  };
+  func mtOptions(g : UsageGuideline) : MtBridge.Options {
+    { creationDateTime = isoDateTimeNow(); settlementMethod = g.settlementMethod; country = defaultLegacyCountryForGuideline(g); versions = func(kind : Text) : Text { ISO.versionOf(g, kind) } }
+  };
+  func mtDecode(g : UsageGuideline, payload : Blob, hint : ?Text) : MtDecode {
+    let d = MtBridge.decode(payload, hint, mtOptions(g), breadthMinorUnits(g));
+    switch (d.message) {
+      case (#ok(m)) { { mtType = d.mtType; iso = d.iso; message = ?m; issues = [] } };
+      case (#err(e)) { { mtType = d.mtType; iso = d.iso; message = null; issues = e } };
+    }
+  };
+
+  /// The bridge's message types and the ISO family each reads into.
+  public query func mtBridgeTypes() : async [(Text, Text)] { Array.map<MtMapping, (Text, Text)>(MtBridge.mappings(), func(m) { (m.mt, m.iso) }) };
+  /// The field-to-element mapping tables the bridge implements — the same data the fixture set carries.
+  public query func mtBridgeMappings() : async [MtMapping] { MtBridge.mappings() };
+  /// A FIN message read into its record under the active guideline; `hint` names the type when block 2 is absent.
+  public query func decodeMt(payload : Blob, hint : ?Text) : async MtDecode { mtDecode(guideline, payload, hint) };
+  public query func decodeMtWithProfile(profileId : Text, payload : Blob, hint : ?Text) : async MtDecode { mtDecode(requireGuidelineForProfile(profileId), payload, hint) };
+  /// A record written as the named FIN type; `parties` names the envelope's institutions where the record does not.
+  public query func encodeMt(message : MtMessage, mtType : Text, parties : MtParty) : async Result.Result<Text, [ValidationIssue]> {
+    MtBridge.encode(message, mtType, parties, breadthMinorUnits(guideline))
+  };
 
   /// A transport format the schema-profile codec routes: "<family>.xml" for one of its families.
   func breadthFormat(format : Text) : Bool {

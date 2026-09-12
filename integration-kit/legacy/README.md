@@ -40,5 +40,23 @@ payment subset into `pain.001`:
 | `71A` | charge bearer mapping: OUR/BEN/SHA to DEBT/CRED/SHAR note |
 | `72` | preserved as sender-to-receiver remittance evidence |
 
-The next native-code hardening step is MT202 and wider MT option mapping with
-stable rule IDs for every option branch.
+## The MT bridge (13 types)
+
+`motoko/iso/MtBridge.mo` reads and writes full FIN messages (blocks 1–4) for
+MT101, MT103, MT104, MT202, MT202 COV, MT900, MT910, MT940, MT942, MT950,
+MT192, MT196 and MT199. Each type's field-to-element table is data in the
+canister (`mtBridgeMappings`) and in `mt-mappings.json` here, written by
+`scripts/mt-bridge-roundtrip.py` from the canister's table so the two cannot
+drift (`--check-mappings` fails the run if they do). What an MT type does not
+carry and a record requires is a documented convention in the table's `note`
+column — never a guess in code.
+
+Fixtures: `mt/*.fin` (two per type, `mt-manifest.json`). Proven by the runner
+for every fixture: MT → record → MT → record equal; record → XML → record equal
+(the compact codec, or the schema-profile codec for camt.052 with xmllint on the
+written document); Prowide swift-core parses both the fixture and what the
+bridge wrote as the same type with the same field 20 / 21 / 32A / UETR.
+
+Routes: `submitTransportEnvelope(format = "mt")` reads the type from block 2;
+`"mt202"`, `"mt202cov"`, … assert it (`MT-TYPE-MISMATCH` when block 2 says
+otherwise). The `mt103`, `mt940` and `mt942` routes above are unchanged.
