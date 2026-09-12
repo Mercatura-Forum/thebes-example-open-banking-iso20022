@@ -32,3 +32,19 @@
 | `camt.055` status other than CANC | `RTP-CANCEL-STATUS` |
 | MT103 missing `32A` | `MT103-32A-REQUIRED` |
 | MT103 bad amount | `MT103-32A-AMOUNT` |
+
+## The schema-profile codec, the MT bridge, the rule sets
+
+| Fixture or situation | Expected rule id |
+| --- | --- |
+| `xml/invalid/*` of `xml/breadth-manifest.json` (tier `schema`) | `ISO-XSD-ROOT`, `ISO-XSD-UNEXPECTED`, `ISO-XSD-MISSING`, `ISO-XSD-LENGTH`, `ISO-XSD-PATTERN`, `ISO-XSD-ENUM`, `ISO-XSD-BOOLEAN`, `XML-UNSAFE-DECL` — the manifest names each fixture's |
+| the same manifest, tier `business` | `ISO-BIZ-COUNT`, `ISO-BIZ-AMOUNT`, `ISO-BIZ-CURRENCY`, `ISO-BIZ-UETR-REQUIRED`, `ISO-BIZ-AGENT-BIC`, `ISO-BIZ-REQUIRED` |
+| a record a writer cannot place in its family's shape (`encodeIsoBreadth`) | `ISO-BIZ-REQUIRED`, `ISO-BIZ-CURRENCY`, `ISO-BIZ-FAMILY` |
+| a written document that does not read back equal (`roundTripIsoBreadth`) | `ROUNDTRIP-EQUALITY`, `ROUNDTRIP-<rule>` |
+| an MT message without block 2 and without a hint | `MT-TYPE` |
+| an MT type outside the bridge's thirteen | `MT-UNSUPPORTED` |
+| a FIN whose block 2 contradicts the route's format | `MT-TYPE-MISMATCH` |
+| a bridge field missing or malformed | `MT<type>-<field>-REQUIRED`, `-DATE`, `-CURRENCY`, `-AMOUNT`, `-BIC`, `-FORMAT` (e.g. `MT104-21C-REQUIRED`, `MT202-58A-REQUIRED`, `MT942-13D-FORMAT`) |
+| `xml/guidelines/*` of `xml/guidelines-manifest.json` | the CBPR+ / HVPS+ rule ids the manifest names (`CBPR-…`, `HVPS-…`), under the `usageGuideline` tier |
+| a rule set id the canister does not carry | `RULESET-UNKNOWN` |
+

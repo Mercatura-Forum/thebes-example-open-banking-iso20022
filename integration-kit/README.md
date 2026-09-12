@@ -3,20 +3,28 @@
 This kit is the hands-on entry point for banks, fintechs, middleware teams, and
 legacy-file integrators.
 
-The canister has compact-profile XML support for every message family listed in
-`XML_SUPPORT_MATRIX.md`. It does not claim full ISO 20022 XSD/profile
-conformance. Full market-rule validation is the next external oracle gate:
-signed fixture bundles plus an off-chain XSD/profile differential runner.
+The canister carries the compact codec for the message families of the first
+table in `XML_SUPPORT_MATRIX.md`, and the schema-profile codec — the official
+ISO 20022 XSDs as generated profiles (43 families), twenty of them read into
+typed records and written back schema-valid — together with the MT bridge
+(13 FIN types) and the CBPR+ / HVPS+ rule sets. Every claim in the matrix has
+its runner in `scripts/` and its report in `profile-runner/`.
 
 ## Contents
 
-- `xml/valid`: XML files that should decode under the compact profile.
+- `xml/valid`: XML files that decode — the compact-profile fixtures, and the
+  official-shape fixtures of the schema-profile codec (`breadth-manifest.json`
+  names them with their xmllint verdicts).
 - `xml/invalid`: XML and replay fixtures expected to dead-letter or fail with
-  stable rule IDs.
+  stable rule IDs (the schema-profile ones carry their tier and rule id in the
+  manifest).
+- `xml/guidelines`: CBPR+ and HVPS+ conforming messages with their AppHdr, and
+  one violation per rule (`guidelines-manifest.json`).
 - `connectors`: Candid envelope templates, registration snippets, batch manifest
   format, and file-drop adapter notes.
-- `legacy`: MT103, MT940/MT942, CSV, and fixed-width examples for legacy
-  integration planning.
+- `legacy`: MT103, MT940/MT942, CSV, and fixed-width examples; `legacy/mt/` the
+  FIN fixtures of the thirteen bridge types and `legacy/mt-mappings.json` the
+  field-to-element tables as the canister carries them.
 - `profiles`: named profile-pack metadata for local, legacy, SEPA, Fedwire,
   FedNow, and CPMI research overlays.
 - `candid`: copyable `thebes-deploy` call/query snippets and the `.did` interface.
@@ -54,11 +62,18 @@ Implemented compact XML routes:
 - `camt.053.xml`
 - `camt.054.xml`
 
+Implemented schema-profile routes (official shape, validated against the XSD
+before reading): `pacs.007.xml`, `pacs.010.xml`, `pacs.029.xml`, `pain.007.xml`,
+`pain.009.xml`, `pain.010.xml`, `pain.011.xml`, `pain.012.xml`, `camt.052.xml`,
+`camt.057.xml`, `camt.060.xml`, `camt.050.xml`, `camt.025.xml`, `camt.026.xml`,
+`camt.027.xml`, `camt.028.xml`, `camt.087.xml`, `admi.006.xml`, `admi.017.xml`,
+`head.002.xml`.
+
 Implemented legacy routes:
 
-- `mt103`
-- `mt940`
-- `mt942`
+- `mt103`, `mt940`, `mt942` (the compact legacy parsers)
+- `mt`, `mt101`, `mt104`, `mt202`, `mt202cov`, `mt900`, `mt910`, `mt950`,
+  `mt192`, `mt196`, `mt199` (the MT bridge; `mt` reads the type from block 2)
 - `csv.payments`
 - `fixed.payments`
 
@@ -66,7 +81,8 @@ Documented adapter patterns, not native canister parsers yet:
 
 - SFTP/file-drop batch transport
 - bank-specific CSV/fixed-width variants beyond the education layout
-- full SWIFT option coverage beyond the supported parser subsets
+- SWIFT MT options beyond those in `legacy/mt-mappings.json` (the bridge refuses
+  an unsupported type or field with a stable rule id rather than guessing)
 - rail-specific acknowledgement SLA/state beyond compact `admi` validation and
   C7 workflow correlation
 
@@ -114,11 +130,31 @@ operator actions. It is metadata only; the repo still expects the certification
 environment to supply ISO, Swift/MyStandards, EPC, Federal Reserve, CBE/EBC, or
 bank-specific artifacts.
 
-Current checkpoint: the public ISO base XSDs are downloaded locally and the
-runner executes real XSD checks. The report is
-`profile-runner/profile-report.json`; the current compact fixture corpus has
-`2` XSD-valid schema-backed fixtures and `21` schema-backed fixtures that still
-need full-ISO fixture hardening.
+Current checkpoint: the public ISO base XSDs (43 files) are downloaded locally
+and the runner judges every fixture of `profile-runner/profile-map.json` against
+its expectation. The report is `profile-runner/profile-report.json`: the 117
+official-shape fixtures (schema-profile codec, CBPR+, HVPS+) all agree with
+their expectation; the 21 compact-codec fixtures of the original corpus are
+still not valid under the official XSDs, as the checkpoint records — the same
+families are validated in the official shape through `validateIsoDocument`.
+
+The schema-profile codec, the MT bridge and the rule sets have their own
+runners, each exiting non-zero on the first disagreement:
+
+```sh
+integration-kit/scripts/iso-breadth-fixtures.py      # the corpus + motoko/test/IsoBreadth.test.mo
+integration-kit/scripts/iso-breadth-roundtrip.py     # read → write → xmllint → read again → Prowide
+integration-kit/scripts/iso-breadth-mutations.py     # 3,600 mutants: xmllint vs the canister's profile
+integration-kit/scripts/mt-bridge-fixtures.py        # 26 FIN fixtures + motoko/test/MtBridge.test.mo
+integration-kit/scripts/mt-bridge-roundtrip.py       # MT ↔ record ↔ XML, Prowide swift-core, mapping tables
+integration-kit/scripts/usage-guideline-fixtures.py  # CBPR+/HVPS+ corpus + motoko/test/RuleSets.test.mo
+integration-kit/scripts/usage-guideline-check.py     # implemented counts, every rule exercised, rule tables
+integration-kit/scripts/iso-profile-gen.py           # regenerates motoko/iso/IsoProfiles.mo from the XSDs
+```
+
+The Prowide jars (`pw-iso20022` and `pw-swift-core`, SRU2025) are read from
+`PROWIDE_JARS` (default `/workspace/s2-oracles/iso20022`); without them the
+round-trip runners report the Prowide checks as not run and exit non-zero.
 
 ## Deployed Canister Replay
 

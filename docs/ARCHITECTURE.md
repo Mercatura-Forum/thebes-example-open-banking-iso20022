@@ -37,14 +37,27 @@ amounts, and configurable code sets.
 18. `stable.index.checkpoints`: commits the ordered secondary indexes into
     Region-backed stable-memory snapshots with SHA-256 commit hashes and live
     verifier checks.
+19. `iso.schema-profile`: validates an official-shape message against the
+    generated profile of its ISO 20022 XSD (43 families, `motoko/iso/`), reads
+    twenty families into typed records and writes them back schema-valid; the
+    connector routes `<family>.xml` for those twenty.
+20. `legacy.mt-bridge`: thirteen FIN types (MT101, MT103, MT104, MT202,
+    MT202 COV, MT900, MT910, MT940, MT942, MT950, MT192, MT196, MT199) into the
+    hub's records and back, mapping tables as data; connector routes `mt` and
+    the typed `mt<nnn>` formats.
+21. `iso.rule-sets`: CBPR+ and HVPS+ as data-driven rule sets over a closed
+    check vocabulary, evaluated after the schema, bound to guideline profiles.
 
 ## Current Limits
 
-- The canister now imports and exports strict compact XML subsets for
-  `pain.001`, direct debit, `pacs.008`, `pacs.009`, cover payments, status
-  reports, investigations/case-management, request-to-pay, administrative, and
-  `camt.053`/`camt.054` reporting. It does not yet perform full XSD validation
-  or support every ISO branch.
+- The compact codec imports and exports strict XML subsets for `pain.001`,
+  direct debit, `pacs.008`, `pacs.009`, cover payments, status reports,
+  investigations/case-management, request-to-pay, administrative, and
+  `camt.053`/`camt.054` reporting; the payment flows run on it, and its shape is
+  not the official one. The schema-profile codec validates official-shape
+  messages of 43 families against their XSDs and reads twenty of them; the
+  compact families are validated in the official shape through
+  `validateIsoDocument`, not yet processed in it.
 - Ordered secondary indexes remove the important query scans for status,
   account/date, creditor-agent, and outbox status reads. The canister also
   commits those sorted keyspaces into Region-backed stable-memory checkpoints
@@ -58,8 +71,12 @@ amounts, and configurable code sets.
   correlation, duplicate rejection, and lifecycle checks.
 - Compliance screening is deterministic and auditable, but not a replacement
   for licensed sanctions/PEP/adverse-media data or institution policy.
-- The MT103 bridge is a verifier-oriented subset for fields commonly needed in
-  credit-transfer fixtures. It is not full SWIFT MT option coverage.
+- The MT bridge covers thirteen types with the options its mapping tables
+  name (`integration-kit/legacy/mt-mappings.json`); other options are refused
+  with a stable rule id. It is not full SWIFT MT option coverage.
+- The CBPR+ and HVPS+ rule sets are the hub's reading of the public
+  descriptions of those guidelines; the MyStandards usage guidelines with their
+  rule identifiers are access-controlled and were not reconciled.
 - Outbound batches now have an ordered connector/status/time index and a Region
   checkpoint. High-volume production queues still need incremental stable node
   updates instead of full snapshot commits.

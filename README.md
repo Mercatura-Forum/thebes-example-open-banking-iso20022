@@ -204,10 +204,27 @@ the certified-disclosure verifier; and named profile packs including
 `EG-DOMESTIC-EDU`, `CBPRPLUS-EDU`, `LEGACY-MT103-BRIDGE`, SEPA and Fedwire
 education profiles, and `BIS-CPMI-HARMONIZED-CROSSBORDER`.
 
-The XML layer is honest about its scope: it is compact-profile support, not full
-ISO 20022 XSD conformance. `docs/INTEGRATION_READINESS.md` lists the remaining
-full-XML and legacy-native-parser gates — nothing hides behind a checkmark it
-has not earned.
+Two codecs carry the XML. The compact codec is what the payment flows run on:
+twenty-two families in a deterministic subset shape, not full XSD conformance,
+and `docs/INTEGRATION_READINESS.md` says so. The schema-profile codec
+(`motoko/iso/`) carries the official ISO 20022 XSDs as generated profiles — 43
+families — validates a message against its schema before reading it, reads
+twenty families into typed records (reversals, direct debits, the mandate cycle,
+the multilateral settlement request, cash management and liquidity, the
+exceptions-and-investigations set, system administration, the business file
+header) and writes them back schema-valid; `validateIsoDocument` accepts any of
+the 43 with or without its AppHdr. On those sit the MT bridge — thirteen FIN
+types (MT101, MT103, MT104, MT202, MT202 COV, MT900, MT910, MT940, MT942,
+MT950, MT192, MT196, MT199) read into the hub's records and written back, each
+with its field-to-element table as data — and two market-practice rule sets,
+CBPR+ and HVPS+, as data over a closed check vocabulary. The MyStandards usage
+guidelines themselves are access-controlled and were not fetched: the rule sets
+are the hub's reading of the public descriptions, each rule naming its basis,
+and the identifier-by-identifier reconciliation with MyStandards is stated as
+not performed. `integration-kit/XML_SUPPORT_MATRIX.md` has the tables and,
+for every claim, the runner and the report that measured it — xmllint against
+the official XSDs, 3,600 mutants with zero disagreements, Prowide cross-parses
+of everything written.
 
 ---
 
@@ -251,6 +268,9 @@ matter most for a first read:
 | Connector | `registerConnector`, `submitTransportEnvelope`, `leaseOutboundBatches`, `ackOutboundDelivery` | Run the on-chain inbound and outbound connector framework. |
 | Oracles | `verifyOraclePhases`, `verifyPaymentPhases`, `verifyPfmiSelfAssessment` | Machine-readable, live-verified phase and self-assessment checks. |
 | Guideline | `getGuideline`, `setGuideline`, `supportedStandards`, `capabilities` | Read or replace the rules, and read the declared standards surface. |
+| Schema profiles | `validateIsoDocument`, `decodeIsoBreadth`, `encodeIsoBreadth`, `roundTripIsoBreadth`, `isoSchemaProfiles` | Official-shape messages against the generated XSD profiles; the twenty typed families read and written. |
+| MT bridge | `decodeMt`, `encodeMt`, `mtBridgeMappings` | Thirteen FIN types to and from the hub's records, with the mapping tables as data. |
+| Rule sets | `isoRuleSets`, `isoRuleSetRules`, `validateIsoDocumentWithRuleSet`, `bindGuidelineRuleSet` | CBPR+ and HVPS+ as data, evaluated after the schema, bound to guideline profiles. |
 
 ---
 

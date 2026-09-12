@@ -14,6 +14,9 @@ import Connector "Connector";
 import LegacyMT "LegacyMT";
 import Breadth "iso/IsoBreadth";
 import MtBridge "iso/MtBridge";
+import RuleSets "iso/RuleSets";
+import IsoXml "iso/Xml";
+import IsoSchema "iso/IsoSchema";
 import IsoProfiles "iso/IsoProfiles";
 import Oracles "PhaseOracle";
 import OrderedIndex "OrderedIndex";
@@ -28,6 +31,7 @@ import Char "mo:core/Char";
 import CertifiedData "mo:core/CertifiedData";
 import Int "mo:core/Int";
 import Iter "mo:core/Iter";
+import List "mo:core/List";
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Nat64 "mo:core/Nat64";
@@ -2112,6 +2116,95 @@ persistent actor ISO20022Hub {
     issues : [ValidationIssue];
   };
   public type SchemaProfileSummary = { family : Text; namespace : Text; rootName : Text; schemaSha256 : Text; types : Nat };
+
+  // -- market-practice rule sets (parity matrix row M5): CBPR+ and HVPS+ as data --------------------
+  // motoko/iso/RuleSets.mo. A rule set evaluates an official-shape message after its schema passed; a
+  // guideline profile may be bound to one, and the general validator applies the binding.
+
+  public type RuleSetSummary = { id : Text; name : Text; authority : Text; basis : [Text]; reconciliation : Text; implemented : [(Text, Nat)]; ruleCount : Nat };
+  public type RuleView = { id : Text; families : [Text]; check : Text; basis : Text };
+  /// The general reading of an official-shape message: the family, the schema tier, the business reading
+  /// when the family is one of the schema-profile codec's, and the rule set's disagreements.
+  public type IsoDocumentReport = { family : Text; hasHeader : Bool; ruleSet : ?Text; report : ValidationReport };
+
+  let profileRuleSets = Map.empty<Text, Text>();
+  func ruleSetIdForProfile(profileId : Text) : ?Text {
+    let canonical = canonicalGuidelineProfileId(profileId);
+    switch (Map.get(profileRuleSets, Text.compare, canonical)) {
+      case (?id) ?id;
+      case null { if (canonical == cbprGuidelineProfileId) ?"CBPRPLUS" else null };
+    }
+  };
+
+  public query func isoRuleSets() : async [RuleSetSummary] {
+    Array.map<RuleSets.RuleSet, RuleSetSummary>(RuleSets.all(), func(rs) { { id = rs.id; name = rs.name; authority = rs.authority; basis = rs.basis; reconciliation = rs.reconciliation; implemented = RuleSets.implemented(rs); ruleCount = rs.rules.size() } })
+  };
+  public query func isoRuleSetRules(ruleSetId : Text) : async [RuleView] {
+    switch (RuleSets.byId(ruleSetId)) {
+      case (?rs) Array.map<RuleSets.Rule, RuleView>(rs.rules, func(r) { { id = r.id; families = r.families; check = RuleSets.checkText(r.check); basis = r.basis } });
+      case null [];
+    }
+  };
+  /// The rule set a guideline profile is bound to (CBPRPLUS-EDU is bound to CBPRPLUS unless rebound).
+  public query func guidelineRuleSet(profileId : Text) : async ?Text { ruleSetIdForProfile(profileId) };
+  public shared (msg) func bindGuidelineRuleSet(profileId : Text, ruleSetId : Text) : async Bool {
+    Admin.requireAdmin(admin, msg.caller);
+    ignore requireGuidelineProfile(profileId);
+    if (RuleSets.byId(ruleSetId) == null) Runtime.trap("unknown rule set " # ruleSetId);
+    Map.add(profileRuleSets, Text.compare, canonicalGuidelineProfileId(profileId), ruleSetId);
+    true
+  };
+
+  func isoDocument(g : UsageGuideline, ruleSetId : ?Text, xml : Blob) : IsoDocumentReport {
+    func fail(family : Text, hasHeader : Bool, issues : [ValidationIssue]) : IsoDocumentReport {
+      { family; hasHeader; ruleSet = ruleSetId; report = ISO.reportFromIssues(g, family, Xml.codecVersion, issues) }
+    };
+    let roots = switch (IsoXml.parseMessage(xml)) {
+      case (#err(e)) return fail("unknown", false, [ISO.publicIssue("schema", e.rule, "$xml@" # Nat.toText(e.offset), e.detail)]);
+      case (#ok(rs)) rs;
+    };
+    if (roots.size() == 0 or roots.size() > 2) return fail("unknown", false, [ISO.publicIssue("schema", "XML-ROOT", "/", "a Document, or an AppHdr followed by a Document")]);
+    let hasHeader = roots.size() == 2;
+    let issues = List.empty<ValidationIssue>();
+    if (hasHeader) {
+      switch (IsoSchema.schemaFor(roots[0].namespace)) {
+        case (?hs) { if (Breadth.shortFamily(hs.family) != "head.001") List.add(issues, ISO.publicIssue("schema", "XML-ROOT", "/" # roots[0].name, "the first element of a two-element message is a head.001 AppHdr")) else { for (i in IsoSchema.validate(hs, roots[0]).vals()) List.add(issues, ISO.publicIssue("schema", i.rule, "/AppHdr" # i.path, i.detail)) } };
+        case null List.add(issues, ISO.publicIssue("schema", "ISO-XSD-ROOT", "/" # roots[0].name, "namespace " # roots[0].namespace # " is not a family this component carries"));
+      };
+    };
+    let doc = roots[roots.size() - 1];
+    let ?sc = IsoSchema.schemaFor(doc.namespace) else return fail("unknown", hasHeader, Array.concat(List.toArray(issues), [ISO.publicIssue("schema", "ISO-XSD-ROOT", "/" # doc.name, "namespace " # doc.namespace # " is not a family this component carries")]));
+    let family = Breadth.shortFamily(sc.family);
+    for (i in IsoSchema.validate(sc, doc).vals()) List.add(issues, ISO.publicIssue("schema", i.rule, i.path, i.detail));
+    if (List.size(issues) > 0) return fail(sc.family, hasHeader, List.toArray(issues));
+    // the business reading, where the schema-profile codec has one
+    if (breadthFormat(family # ".xml")) {
+      let bytes = Text.encodeUtf8(IsoXml.serialize(doc));
+      let d = Breadth.decode(bytes, breadthMinorUnits(g));
+      switch (d.message) { case (#err(e)) { for (i in e.vals()) List.add(issues, breadthIssue("business", i)) }; case (#ok(_)) {} };
+    };
+    // the rule set
+    switch (ruleSetId) {
+      case (?id) {
+        switch (RuleSets.byId(id)) {
+          case (?rs) {
+            let msgRoot = if (doc.children.size() == 1) doc.children[0] else doc;
+            for (i in RuleSets.evaluate(rs, family, msgRoot, hasHeader).vals()) List.add(issues, ISO.publicIssue("usageGuideline", i.rule, i.path, i.detail));
+          };
+          case null List.add(issues, ISO.publicIssue("usageGuideline", "RULESET-UNKNOWN", "$.ruleSet", "no rule set " # id));
+        };
+      };
+      case null {};
+    };
+    fail(sc.family, hasHeader, List.toArray(issues))
+  };
+
+  /// An official-shape message (any of the 43 schema profiles, with or without its AppHdr) under the active
+  /// guideline: the schema, the business reading, and the rule set the default profile is bound to.
+  public query func validateIsoDocument(xml : Blob) : async IsoDocumentReport { isoDocument(guideline, ruleSetIdForProfile(defaultGuidelineProfileId), xml) };
+  public query func validateIsoDocumentWithProfile(profileId : Text, xml : Blob) : async IsoDocumentReport { isoDocument(requireGuidelineForProfile(profileId), ruleSetIdForProfile(profileId), xml) };
+  /// The same reading under a named rule set, whatever the profile binding.
+  public query func validateIsoDocumentWithRuleSet(ruleSetId : Text, xml : Blob) : async IsoDocumentReport { isoDocument(guideline, ?ruleSetId, xml) };
 
   // -- the MT bridge (parity matrix row M4): twelve FIN message types ↔ the hub's records -------------
   // motoko/iso/MtBridge.mo. The legacy routes above ("mt103", "mt940", "mt942") are unchanged; the
