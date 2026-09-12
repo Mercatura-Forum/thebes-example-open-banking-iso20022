@@ -1,5 +1,5 @@
 {
-  "bundleHash": "3678edcc5be66f751be78db2ae46b0507139341a44a83d3f48ec82d89ee9df35",
+  "bundleHash": "ec68329adfb396b0236c41591386fc9028ef73ae30dcfcc48c0cba61db099043",
   "fileCount": 69,
   "files": [
     {
@@ -68,9 +68,9 @@
       "sha256": "d8de0aae8b7fb5aa99fe262a4a63ced6d9b85a29362ea61e22a160ccc08f171f"
     },
     {
-      "bytes": 1941,
+      "bytes": 2184,
       "path": "integration-kit/expected/rule-ids.md",
-      "sha256": "e46a896b6f9159742df0e71047139fd3c0a5fbb42d057e99738cc670a465fa0d"
+      "sha256": "d8613baa50422bfa46e70df2b97d9d5ea303ae9bf416c876318414dce932a9a4"
     },
     {
       "bytes": 825,
@@ -265,7 +265,7 @@
     {
       "bytes": 2401,
       "path": "integration-kit/xml/valid/direct-debit-pacs003-sdd.xml",
-      "sha256": "48c27d4e80cc2f2261fc94f3836df5c8e76835f7146415e70b0048705e405dc4"
+      "sha256": "55e1791bcff8f0c2ccd9dd68ec596af15462f4f826786ea377cb53f2f4388997"
     },
     {
       "bytes": 2450,
@@ -348,7 +348,7 @@
       "sha256": "2ece7d08a3d1f70ab57c9fdfbf247bdf8a8d9d306b25b9027a5d9ca32de56bed"
     }
   ],
-  "generatedAt": "2026-06-25T08:12:56.681461+00:00",
+  "generatedAt": "2026-09-12T02:48:10.015423+00:00",
   "hashAlgorithm": "SHA-256",
   "manifestVersion": "thebes-fixture-bundle-v1"
 }

@@ -342,8 +342,10 @@ module {
         };
         case null "";
       };
-      header
-      # "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+      // the declaration first, then the header, then the document — a declaration after the
+      // header is what a conforming parser refuses (and this codec now refuses too)
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+      # header
       # "<Document xmlns=\"" # PACS003_NS # "\">\n"
       # "  <FIToFICstmrDrctDbt>\n"
       # "    <GrpHdr>\n"
@@ -1350,7 +1352,42 @@ module {
     if (Text.contains(text, #text "<?xml-stylesheet")) {
       issues := add(issues, ISO.publicIssue("schema", "XML-PI", "$xml", "XML processing instructions other than the XML declaration are not allowed"));
     };
+    // An XML declaration is allowed only as the very first bytes (after an optional byte-order
+    // mark); a conforming parser refuses one anywhere else, and so does this codec. A second
+    // declaration and a byte-order mark inside the document are refused likewise.
+    switch (declarationPosition(text)) {
+      case (#misplaced) issues := add(issues, ISO.publicIssue("schema", "XML-DECL-POSITION", "$xml", "an XML declaration is allowed only at the start of the document"));
+      case (#duplicate) issues := add(issues, ISO.publicIssue("schema", "XML-DECL-DUPLICATE", "$xml", "a second XML declaration is not allowed"));
+      case (#ok) {};
+    };
+    if (bomInside(text)) {
+      issues := add(issues, ISO.publicIssue("schema", "XML-BOM-POSITION", "$xml", "a byte-order mark is allowed only as the first bytes of the document"));
+    };
     issues;
+  };
+
+  /// Where the XML declarations are: none or one at the very start is fine; one anywhere else is
+  /// misplaced; more than one is a duplicate.
+  func declarationPosition(text : Text) : { #ok; #misplaced; #duplicate } {
+    let body = Text.trimStart(text, #text "\u{FEFF}");
+    // only a declaration counts: "<?xml" followed by whitespace, not "<?xml-stylesheet"
+    var decls = 0;
+    var i = 0;
+    let chars = Text.toArray(body);
+    let n = chars.size();
+    while (i + 5 < n) {
+      if (chars[i] == '<' and chars[i + 1] == '?' and chars[i + 2] == 'x' and chars[i + 3] == 'm' and chars[i + 4] == 'l' and (chars[i + 5] == ' ' or chars[i + 5] == '\t' or chars[i + 5] == '\n' or chars[i + 5] == '\r')) {
+        decls += 1;
+        if (i != 0) return (if (decls > 1) #duplicate else #misplaced);
+      };
+      i += 1;
+    };
+    if (decls > 1) #duplicate else #ok
+  };
+
+  func bomInside(text : Text) : Bool {
+    let body = Text.trimStart(text, #text "\u{FEFF}");
+    Text.contains(body, #text "\u{FEFF}")
   };
 
   type Element = {

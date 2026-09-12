@@ -26,3 +26,11 @@ integration-kit/scripts/fixture-bundle.py verify \
 
 The repository includes a development public key and matching signature for the
 current fixture bundle. Production users should replace it with their own key.
+
+## Current state of the development signature
+
+`fixture-bundle.json` was regenerated on 2026-09-12 after `xml/valid/direct-debit-pacs003-sdd.xml`
+was corrected (its XML declaration moved to the start of the document; see
+`expected/rule-ids.md`, `XML-DECL-POSITION`). `fixture-bundle.sig` still signs the previous
+manifest and does not verify against the current one: the development private key is not in this
+repository, so the holder of that key re-signs with `fixture-bundle.py sign`.

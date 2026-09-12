@@ -3,6 +3,9 @@
 | Fixture or replay | Expected rule id |
 | --- | --- |
 | `xml/invalid/xml-doctype-entity.xml` | `XML-UNSAFE-DECL` |
+| an XML declaration anywhere but the start of the document (after an element, whitespace or a comment) | `XML-DECL-POSITION` |
+| a second XML declaration | `XML-DECL-DUPLICATE` |
+| a byte-order mark inside the document | `XML-BOM-POSITION` |
 | `xml/invalid/status-uetr-mismatch.xml` after original payment exists | `STATUS-UETR-MISMATCH` |
 | replay `xml/valid/status-pacs002-settled.xml` after it was applied once | `STATUS-PACS002-DUPLICATE` |
 | submit `pacs.004.xml` before payment is settled/dispatched | `STATUS-PACS004-LIFECYCLE` |
