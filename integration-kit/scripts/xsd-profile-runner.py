@@ -64,6 +64,9 @@ def document_fragment(raw: bytes) -> tuple[bytes, str]:
     """
     text = raw.decode("utf-8-sig")
     stripped = text.lstrip()
+    # a business file (head.002) is rooted at Xchg, its payloads inside: the whole file is what the schema sees
+    if "<Xchg" in text and text.find("<Xchg") < (text.find("<Document") if "<Document" in text else len(text)):
+        return raw, "raw-fixture"
     if stripped.startswith("<?xml"):
         after_decl = stripped.split("?>", 1)
         if len(after_decl) == 2 and after_decl[1].lstrip().startswith("<Document"):
@@ -236,7 +239,11 @@ def main() -> int:
                     detail = portable_detail(detail, xsd_fixture, display_path)
                     result["status"] = status
                     result["detail"] = detail
-                    if status != "schema-valid":
+                    # the verdict is judged against the map's expectation: a negative fixture is meant to be
+                    # schema-invalid, a business-invalid one schema-valid
+                    want_valid = item["expected"] != "schema-invalid"
+                    result["asExpected"] = (status == "schema-valid") == want_valid
+                    if not result["asExpected"]:
                         failing += 1
             results.append(result)
 

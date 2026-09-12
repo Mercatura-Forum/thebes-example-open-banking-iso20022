@@ -40,6 +40,29 @@ ISO_SCHEMA_DOWNLOADS = [
     ("pain.008.001.08.xsd", "https://www.iso20022.org/message/14481/download"),
     ("pain.013.001.10.xsd", "https://www.iso20022.org/message/22697/download"),
     ("pain.014.001.10.xsd", "https://www.iso20022.org/message/22698/download"),
+    # the schema-profile codec's families and the business application header (S2.7 7d), from the
+    # public catalogue's direct schema paths
+    ("admi.006.001.01.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/admi/schemas/admi.006.001.01.xsd"),
+    ("admi.017.001.01.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/admi/schemas/admi.017.001.01.xsd"),
+    ("camt.025.001.05.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.025.001.05.xsd"),
+    ("camt.026.001.07.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.026.001.07.xsd"),
+    ("camt.027.001.07.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.027.001.07.xsd"),
+    ("camt.028.001.09.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.028.001.09.xsd"),
+    ("camt.050.001.05.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.050.001.05.xsd"),
+    ("camt.052.001.08.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.052.001.08.xsd"),
+    ("camt.057.001.06.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.057.001.06.xsd"),
+    ("camt.060.001.05.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.060.001.05.xsd"),
+    ("camt.087.001.06.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/camt/schemas/camt.087.001.06.xsd"),
+    ("head.001.001.02.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/head/schemas/head.001.001.02.xsd"),
+    ("head.002.001.01.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/head/schemas/head.002.001.01.xsd"),
+    ("pacs.007.001.10.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pacs/schemas/pacs.007.001.10.xsd"),
+    ("pacs.010.001.04.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pacs/schemas/pacs.010.001.04.xsd"),
+    ("pacs.029.001.02.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pacs/schemas/pacs.029.001.02.xsd"),
+    ("pain.007.001.10.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pain/schemas/pain.007.001.10.xsd"),
+    ("pain.009.001.07.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pain/schemas/pain.009.001.07.xsd"),
+    ("pain.010.001.07.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pain/schemas/pain.010.001.07.xsd"),
+    ("pain.011.001.07.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pain/schemas/pain.011.001.07.xsd"),
+    ("pain.012.001.07.xsd", "https://www.iso20022.org/sites/default/files/documents/messages/pain/schemas/pain.012.001.07.xsd"),
 ]
 
 

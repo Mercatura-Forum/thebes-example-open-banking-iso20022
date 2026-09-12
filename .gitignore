@@ -29,3 +29,6 @@ tools/
 
 __pycache__/
 *.pyc
+
+# Derived from the official XSDs by integration-kit/scripts/iso-profile-gen.py (--json-dir); regenerate, do not commit
+integration-kit/profile-runner/profiles/

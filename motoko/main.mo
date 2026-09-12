@@ -12,6 +12,8 @@ import ISO "ISO20022";
 import Xml "ISO20022Xml";
 import Connector "Connector";
 import LegacyMT "LegacyMT";
+import Breadth "iso/IsoBreadth";
+import IsoProfiles "iso/IsoProfiles";
 import Oracles "PhaseOracle";
 import OrderedIndex "OrderedIndex";
 import StableOrderedIndex "StableOrderedIndex";
@@ -30,6 +32,7 @@ import Nat "mo:core/Nat";
 import Nat64 "mo:core/Nat64";
 import Nat8 "mo:core/Nat8";
 import Principal "mo:core/Principal";
+import Result "mo:core/Result";
 import Runtime "mo:core/Runtime";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
@@ -1474,6 +1477,12 @@ persistent actor ISO20022Hub {
             status := "dead-letter";
           };
         };
+      } else if (breadthFormat(env.format)) {
+        // the schema-profile codec: the official XSD first, then the business reading
+        let d = Breadth.decode(env.payload, breadthMinorUnits(selectedGuideline));
+        let bi = breadthIssues(d);
+        if (bi.size() == 0) { status := "processed" }
+        else { for (i in bi.vals()) issues := Connector.add(issues, i); status := "dead-letter" };
       } else {
         issues := Connector.add(issues, ISO.publicIssue("transport", "TRANSPORT-ROUTE-MISSING", "$.format", "format is allowed but no on-chain route is implemented yet"));
         status := "dead-letter";
@@ -2065,6 +2074,91 @@ persistent actor ISO20022Hub {
 
   public query func decodeCamt054Xml(xml : Blob) : async StatementXmlDecode {
     Xml.decodeCamt054(xml);
+  };
+
+  // -- schema-profile codec: the twenty families of the declared target list ----------------------
+  // (thebes-banking-program progress log entry 16; motoko/iso/IsoBreadth.mo). A message is validated
+  // against its official XSD (motoko/iso/IsoProfiles.mo, generated from the schemas) before its
+  // business content is read; a record is written back schema-valid. The compact codec above is
+  // untouched: these families are read and written in the official shape only.
+
+  public type BreadthMessage = Breadth.Message;
+  public type BreadthEmitOptions = Breadth.EmitOptions;
+  public type BreadthDecode = {
+    family : Text;
+    /// the official schema's disagreements (tier "schema"); the business reading is attempted only when empty
+    schemaIssues : [ValidationIssue];
+    /// the typed record, when both tiers passed
+    message : ?BreadthMessage;
+    /// every issue of both tiers, the shape the transport route records
+    issues : [ValidationIssue];
+  };
+  public type SchemaProfileSummary = { family : Text; namespace : Text; rootName : Text; schemaSha256 : Text; types : Nat };
+
+  /// A transport format the schema-profile codec routes: "<family>.xml" for one of its families.
+  func breadthFormat(format : Text) : Bool {
+    for (f in Breadth.FAMILIES.vals()) { if (format == Breadth.shortFamily(f) # ".xml") return true };
+    false
+  };
+
+  /// The minor units of a currency under a guideline — what the codec needs to hold an amount exactly.
+  func breadthMinorUnits(g : UsageGuideline) : Text -> ?Nat8 {
+    func(code : Text) : ?Nat8 {
+      for (c in g.currencies.vals()) { if (c.code == code) return ?Nat8.fromNat(c.fractionDigits) };
+      null
+    }
+  };
+
+  func breadthIssue(tier : Text, i : Breadth.Issue) : ValidationIssue { ISO.publicIssue(tier, i.rule, i.path, i.detail) };
+  func breadthIssues(d : Breadth.Decoded) : [ValidationIssue] {
+    let schema = Array.map<Breadth.Issue, ValidationIssue>(d.schemaIssues, func(i) { breadthIssue("schema", i) });
+    switch (d.message) {
+      case (#ok(_)) schema;
+      case (#err(e)) Array.concat<ValidationIssue>(schema, Array.map<Breadth.Issue, ValidationIssue>(e, func(i) { breadthIssue("business", i) }));
+    }
+  };
+  func breadthDecode(g : UsageGuideline, xml : Blob) : BreadthDecode {
+    let d = Breadth.decode(xml, breadthMinorUnits(g));
+    { family = d.family; schemaIssues = Array.map<Breadth.Issue, ValidationIssue>(d.schemaIssues, func(i) { breadthIssue("schema", i) }); message = (switch (d.message) { case (#ok(m)) ?m; case (#err(_)) null }); issues = breadthIssues(d) }
+  };
+
+  /// The families the schema-profile codec reads and writes, by message definition identifier.
+  public query func isoBreadthFamilies() : async [Text] { Breadth.FAMILIES };
+
+  /// Every official schema the canister carries as a generated profile: the compact codec's families,
+  /// the business application header and the schema-profile codec's families (43).
+  public query func isoSchemaProfiles() : async [SchemaProfileSummary] {
+    Array.map<IsoProfiles.Schema, SchemaProfileSummary>(IsoProfiles.all(), func(s) { { family = s.family; namespace = s.namespace; rootName = s.rootName; schemaSha256 = s.schemaSha256; types = s.types.size() } })
+  };
+
+  public query func decodeIsoBreadth(xml : Blob) : async BreadthDecode { breadthDecode(guideline, xml) };
+  public query func decodeIsoBreadthWithProfile(profileId : Text, xml : Blob) : async BreadthDecode { breadthDecode(requireGuidelineForProfile(profileId), xml) };
+
+  public query func validateIsoBreadth(xml : Blob) : async ValidationReport {
+    let d = breadthDecode(guideline, xml);
+    ISO.reportFromIssues(guideline, d.family, Xml.codecVersion, d.issues)
+  };
+  public query func validateIsoBreadthWithProfile(profileId : Text, xml : Blob) : async ValidationReport {
+    let g = requireGuidelineForProfile(profileId);
+    let d = breadthDecode(g, xml);
+    ISO.reportFromIssues(g, d.family, Xml.codecVersion, d.issues)
+  };
+
+  /// A record written in its family's official shape, or the fields the schema needs and the record lacks.
+  public query func encodeIsoBreadth(message : BreadthMessage, options : BreadthEmitOptions) : async Result.Result<Text, [ValidationIssue]> {
+    switch (Breadth.emit(message, breadthMinorUnits(guideline), options)) {
+      case (#ok(x)) #ok(x);
+      case (#err(e)) #err(Array.map<Breadth.Issue, ValidationIssue>(e, func(i) { breadthIssue("business", i) }));
+    }
+  };
+
+  /// The message read, written and read again: `#ok` is the written document when the two readings are
+  /// equal — the property the integration kit's breadth runner asserts on every fixture.
+  public query func roundTripIsoBreadth(xml : Blob, options : BreadthEmitOptions) : async Result.Result<Text, [ValidationIssue]> {
+    switch (Breadth.roundTrip(xml, breadthMinorUnits(guideline), options)) {
+      case (#ok(x)) #ok(x);
+      case (#err(e)) #err(Array.map<Breadth.Issue, ValidationIssue>(e, func(i) { breadthIssue(if (Text.startsWith(i.rule, #text "ISO-XSD") or Text.startsWith(i.rule, #text "XML-")) "schema" else "business", i) }));
+    }
   };
 
   public query func validatePain001Xml(xml : Blob) : async ValidationReport {
